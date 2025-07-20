@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+.env
+
+# log files
+logs/
+*.log
+npm-debug.log*
+
+# OS or IDE
+.DS_Store
+.vscode/
+*.swp
+
+# Build
+dist/
+build/
+
+# Sensitive keys
+*.pem
+
+# Render build logs
+render.yaml
