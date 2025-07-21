@@ -1,23 +1,67 @@
-# dependencies
+# ===============================
+# Node modules & environment
+# ===============================
 node_modules/
 .env
+.env.*   # include env.production, env.local, etc.
 
-# log files
+# ===============================
+# Logs & Debugging
+# ===============================
 logs/
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# OS or IDE
+# ===============================
+# OS / IDE / Editor Stuff
+# ===============================
 .DS_Store
 .vscode/
 *.swp
+*.swo
+*.swn
 
-# Build
+# ===============================
+# Build Artifacts (Vite / React)
+# ===============================
 dist/
 build/
 
-# Sensitive keys
+# ===============================
+# SSL / Security / Keys
+# ===============================
 *.pem
+*.key
+*.crt
 
-# Render build logs
+# ===============================
+# Render Deployment
+# ===============================
 render.yaml
+.render/
+
+# ===============================
+# PDF Invoices (optional if stored temporarily)
+# ===============================
+invoices/*.pdf
+
+# ===============================
+# PM2 Logs (if used on EC2)
+# ===============================
+pids/
+*.pid
+*.seed
+*.log
+
+# ===============================
+# Coverage (if using Jest)
+# ===============================
+coverage/
+
+# ===============================
+# Misc
+# ===============================
+*.tgz
+.idea/

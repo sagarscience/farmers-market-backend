@@ -1,66 +1,78 @@
 import PDFDocument from "pdfkit";
 
-/**
- * Generates and streams an invoice PDF for the given order.
- * @param {*} res - Express response object
- * @param {*} order - Order object (with buyer and products populated)
- */
 export const generateInvoice = (res, order) => {
-  const doc = new PDFDocument({ size: "A4", margin: 50 });
+  const doc = new PDFDocument({ margin: 50 });
 
   // Set response headers
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `inline; filename=invoice-${order._id}.pdf`);
+  res.setHeader("Content-Disposition", `attachment; filename=invoice_${order._id}.pdf`);
+
+  // Pipe PDF to response
   doc.pipe(res);
 
-  // Title
-  doc.font("Helvetica-Bold").fontSize(20).text("Invoice", { align: "center" });
-  doc.moveDown(1.5);
+  // ======= INVOICE HEADER =======
+  doc
+    .fontSize(20)
+    .text("🧾 Farmers Online Trading & Selling System", { align: "center" })
+    .moveDown();
 
-  // Buyer Details
-  doc.font("Helvetica").fontSize(12);
-  doc.text(`Buyer: ${order.buyer.name}`);
-  doc.text(`Email: ${order.buyer.email}`);
-  doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`);
-  doc.text(`Order ID: ${order._id}`);
-  doc.moveDown(1.5);
+  doc
+    .fontSize(14)
+    .text(`Invoice ID: ${order._id}`)
+    .text(`Date: ${new Date(order.createdAt).toLocaleDateString("en-IN")}`)
+    .moveDown();
+
+  // ======= BUYER DETAILS =======
+  doc
+    .fontSize(12)
+    .text(`Buyer Name: ${order.buyer?.name || "N/A"}`)
+    .text(`Buyer Email: ${order.buyer?.email || "N/A"}`)
+    .moveDown();
+
+  // ======= ORDER ITEMS =======
+  doc
+    .fontSize(14)
+    .text("Order Summary", { underline: true })
+    .moveDown(0.5);
+
+  const tableTop = doc.y;
+  const itemSpacing = 25;
 
   // Table Headers
-  const tableTop = doc.y;
-  const itemX = 50, priceX = 250, qtyX = 300, totalX = 360;
-
   doc
     .font("Helvetica-Bold")
-    .fontSize(12)
-    .text("Product", itemX, tableTop)
-    .text("Price", priceX, tableTop)
-    .text("Qty", qtyX, tableTop)
-    .text("Total", totalX, tableTop);
+    .text("Product", 50, tableTop)
+    .text("Price", 250, tableTop)
+    .text("Qty", 320, tableTop)
+    .text("Total", 380, tableTop);
 
-  doc.moveTo(itemX, doc.y + 5).lineTo(550, doc.y + 5).stroke();
-  doc.moveDown(1);
+  doc.moveDown();
 
-  // Product Rows
-  doc.font("Helvetica").fontSize(11);
-
-  order.products.forEach((item) => {
-    const y = doc.y;
+  // Table Rows
+  doc.font("Helvetica");
+  order.products.forEach((item, i) => {
+    const y = tableTop + itemSpacing * (i + 1);
     doc
-      .text(item.name, itemX, y, { width: 200 }) // wrap long product names
-      .text("₹" + item.price.toString(), priceX, y)
-      .text(item.quantity.toString(), qtyX, y)
-      .text("₹" + (item.price * item.quantity).toString(), totalX, y);
-    doc.moveDown(0.7);
+      .text(item.name, 50, y)
+      .text(`₹${item.price}`, 250, y)
+      .text(`${item.quantity}`, 320, y)
+      .text(`₹${item.price * item.quantity}`, 380, y);
   });
 
-  // Total Amount
-  doc.moveDown(1.5);
+  // ======= TOTAL =======
   doc
-    .font("Helvetica-Bold")
+    .moveDown(2)
     .fontSize(13)
-    .text("Grand Total: ₹" + order.totalAmount.toString(), {
-      align: "right",
-    });
+    .font("Helvetica-Bold")
+    .text(`Total Amount: ₹${order.totalAmount}`, { align: "right" });
 
+  // ======= FOOTER =======
+  doc
+    .moveDown()
+    .fontSize(10)
+    .font("Helvetica-Oblique")
+    .text("Thank you for supporting local farmers!", { align: "center" });
+
+  // Finalize
   doc.end();
 };

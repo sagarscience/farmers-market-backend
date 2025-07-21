@@ -1,9 +1,10 @@
 import jwt from "jsonwebtoken";
 
+// Middleware to protect private routes
 export const protect = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!authHeader?.startsWith("Bearer ")) {
     return res.status(401).json({ message: "Unauthorized: No token provided" });
   }
 
@@ -11,7 +12,7 @@ export const protect = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // decoded = { id, role, iat, exp }
+    req.user = decoded; // { id, name, email, role, iat, exp }
     next();
   } catch (err) {
     console.error("JWT verification failed:", err.message);
@@ -19,10 +20,10 @@ export const protect = (req, res, next) => {
   }
 };
 
+// Middleware to allow only admin or farmer roles
 export const adminOrFarmerOnly = (req, res, next) => {
-  if (req.user && (req.user.role === "admin" || req.user.role === "farmer")) {
-    next();
-  } else {
-    res.status(403).json({ message: "Access denied. Admin or Farmer only." });
+  if (req.user?.role === "admin" || req.user?.role === "farmer") {
+    return next();
   }
+  res.status(403).json({ message: "Access denied. Admin or Farmer only." });
 };

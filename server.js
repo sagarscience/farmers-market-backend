@@ -5,28 +5,47 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 
+// Routes
 import authRoutes from "./routes/authRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import newsRoutes from "./routes/news.js";
+
+// Models
 import ChatMessage from "./models/ChatMessage.js";
 
+// 🔐 Environment Config
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+// ✅ Allowed origins for both dev and prod
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://main.d3kd3knlivprie.amplifyapp.com"
+];
+
+// 🌐 Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: "https://main.d3kd3knlivprie.amplifyapp.com/",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by Socket.IO CORS"));
+      }
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
-const onlineUsers = new Map(); // key: socket.id => { name, role }
+// 💬 Track connected users
+const onlineUsers = new Map();
 
-// ✅ Handle Socket.IO connections
 io.on("connection", (socket) => {
   const { name, role } = socket.handshake.query;
 
@@ -37,24 +56,20 @@ io.on("connection", (socket) => {
 
   io.emit("onlineUsers", Array.from(onlineUsers.values()));
 
-  // ✅ Join room (global or private)
   socket.on("joinRoom", async (roomId) => {
     socket.join(roomId);
-    console.log(`👤 ${name || socket.id} joined room: ${roomId}`);
     try {
       const messages = await ChatMessage.find({ roomId }).sort({ timestamp: 1 });
       socket.emit("loadMessages", messages);
     } catch (err) {
-      console.error("❌ Error loading messages:", err);
+      console.error("❌ Load chat error:", err.message);
     }
   });
 
-  // ✅ Send new message (global or private)
   socket.on("sendMessage", async ({ roomId, sender, role, message }) => {
     try {
       const newMsg = new ChatMessage({ roomId, sender, role, message });
       await newMsg.save();
-
       io.to(roomId).emit("receiveMessage", {
         roomId,
         sender,
@@ -63,11 +78,10 @@ io.on("connection", (socket) => {
         timestamp: newMsg.timestamp,
       });
     } catch (err) {
-      console.error("❌ Message send error:", err);
+      console.error("❌ Send message error:", err.message);
     }
   });
 
-  // ✅ Typing indicators
   socket.on("typing", ({ from, roomId }) => {
     socket.to(roomId).emit("typing", { from });
   });
@@ -76,7 +90,6 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("stopTyping");
   });
 
-  // ✅ Disconnect
   socket.on("disconnect", () => {
     const user = onlineUsers.get(socket.id);
     if (user) {
@@ -89,25 +102,46 @@ io.on("connection", (socket) => {
   });
 });
 
-// ✅ Middlewares
-app.use(cors());
+// 🔧 Express Middleware
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by Express CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-// ✅ Connect to MongoDB
+// 🔗 MongoDB Connection
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.error("❌ MongoDB Error:", err));
+  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
-// ✅ Routes
+// 📦 Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/news", newsRoutes); // Optional: if using agri RSS
 
-// ✅ Start server
+// ✅ Health Check Route
+app.get("/", (req, res) => {
+  res.send("🌾 Farmers Market API is running...");
+});
+
+// 🚀 Start Server
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () =>
-  console.log(`🚀 Server running at http://localhost:${PORT}`)
-);
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
