@@ -16,11 +16,14 @@ import newsRoutes from "./routes/news.js";
 // Models
 import ChatMessage from "./models/ChatMessage.js";
 
+
 // 🔐 Environment Config
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+// 💬 Track connected users
+const onlineUsers = new Map();
 
 // ✅ Allowed origins for both dev and prod
 const allowedOrigins = [
@@ -43,44 +46,52 @@ const io = new Server(server, {
   },
 });
 
-// 💬 Track connected users
-const onlineUsers = new Map();
 
 io.on("connection", (socket) => {
-  const { name, role } = socket.handshake.query;
+  const { name, role, userId } = socket.handshake.query;
 
   if (name && role) {
-    onlineUsers.set(socket.id, { name, role });
+    onlineUsers.set(socket.id, { socketId: socket.id, name, role, userId });
     console.log(`🟢 ${name} (${role}) connected: ${socket.id}`);
   }
 
   io.emit("onlineUsers", Array.from(onlineUsers.values()));
 
   socket.on("joinRoom", async (roomId) => {
+
+    if (!roomId) return;
     socket.join(roomId);
     try {
-      const messages = await ChatMessage.find({ roomId }).sort({ timestamp: 1 });
+      const messages = await ChatMessage.find({ roomId }).sort({ createdAt: 1 });
       socket.emit("loadMessages", messages);
     } catch (err) {
       console.error("❌ Load chat error:", err.message);
     }
   });
 
-  socket.on("sendMessage", async ({ roomId, sender, role, message }) => {
+  socket.on("sendMessage", async (data) => {
+    if (!data) return console.error("❌ No data in sendMessage");
+
+    const { roomId, sender, senderId, recieverId, role, message } = data;
+    if (!roomId || !sender || !message || !senderId || !recieverId) return console.error("❌ Incomplete message data");
+
     try {
-      const newMsg = new ChatMessage({ roomId, sender, role, message });
+      const newMsg = new ChatMessage({ roomId, sender, senderId, recieverId, role, message });
       await newMsg.save();
+
+      // Emit to specific room
       io.to(roomId).emit("receiveMessage", {
         roomId,
         sender,
         role,
         message,
-        timestamp: newMsg.timestamp,
+        timestamp: newMsg.createdAt,
       });
     } catch (err) {
       console.error("❌ Send message error:", err.message);
     }
   });
+
 
   socket.on("typing", ({ from, roomId }) => {
     socket.to(roomId).emit("typing", { from });

@@ -5,7 +5,7 @@ const chatMessageSchema = new mongoose.Schema(
     roomId: {
       type: String,
       required: true,
-      index: true, // For fast room-based queries
+      index: true,
     },
     senderId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -15,7 +15,6 @@ const chatMessageSchema = new mongoose.Schema(
     receiverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
     senderName: {
       type: String,
@@ -32,11 +31,7 @@ const chatMessageSchema = new mongoose.Schema(
       trim: true,
     },
   },
-  {
-    timestamps: true, // Automatically adds createdAt and updatedAt
-  }
+  { timestamps: true }
 );
 
-const ChatMessage = mongoose.model("ChatMessage", chatMessageSchema);
-
-export default ChatMessage;
+export default mongoose.model("ChatMessage", chatMessageSchema);
