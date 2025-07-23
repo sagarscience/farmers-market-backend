@@ -15,9 +15,9 @@ router.post("/", protect, async (req, res) => {
 
     for (const item of cart) {
       const product = await Product.findById(item._id);
-      if (!product || product.quantity < item.quantity) {
+      if (!product || product.stock < item.quantity) {
         return res.status(400).json({
-          message: `Insufficient stock for ${item.name}. Available: ${product?.quantity || 0}`,
+          message: `Insufficient stock for ${item.name}. Available: ${product?.stock || 0}`,
         });
       }
     }
@@ -40,7 +40,7 @@ router.post("/", protect, async (req, res) => {
     for (const item of cart) {
       await Product.findByIdAndUpdate(
         item._id,
-        { $inc: { quantity: -item.quantity } },
+        { $inc: { stock: -item.quantity } },
         { new: true }
       );
     }
