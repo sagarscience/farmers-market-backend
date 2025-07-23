@@ -76,7 +76,7 @@ io.on("connection", (socket) => {
     if (!roomId || !sender || !message || !senderId || !recieverId) return console.error("❌ Incomplete message data");
 
     try {
-      const newMsg = new ChatMessage({ roomId, senderName, senderId, recieverId, role, message });
+      const newMsg = new ChatMessage({ roomId, sender, senderId, recieverId, role, message });
       await newMsg.save();
 
       // Emit to specific room
