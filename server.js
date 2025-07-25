@@ -28,7 +28,8 @@ const onlineUsers = new Map();
 // ✅ Allowed origins for both dev and prod
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://main.d3kd3knlivprie.amplifyapp.com"
+  "https://main.d3kd3knlivprie.amplifyapp.com",
+  "https://farmers-market-frontend.onrender.com"
 ];
 
 // 🌐 Socket.IO setup
