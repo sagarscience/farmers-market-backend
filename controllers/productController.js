@@ -16,7 +16,7 @@ export const addProduct = async (req, res) => {
       error: err.message,
     });
   }
-};
+}; 
 
 // Get all products created by the logged-in farmer
 export const getFarmerProducts = async (req, res) => {
